@@ -1,0 +1,64 @@
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.0;
+
+//Importing Aggregator methods into the project.
+import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+error NotOwner();
+
+contract fundMe {
+    //Add owner of the contract to the liast
+    address public i_owner;
+    
+    
+    //Create a contructor, to declare where processing should begin in this docuemnt.
+    constructor()  {
+        i_owner = msg.sender;
+    }
+
+    //We will declare an array and a mapping function to hold all funders.
+    address [] public funders;
+    mapping (address => uint256) addfundersHere;
+    //Declare a varable to hold minimum amount to br funded.
+    uint256 public Minimun_amount = 50;
+
+    //Now we will create a function called fundMe.
+    //We will require that all payment meet minimun treshhold.
+    //we will create bucket to keep all of the funders and day thank you to them
+    //We will create a structure to map address to thier accounts
+    //Then we will go ahead to withdraw the fund to our address
+    function fundME() public payable {
+        require(msg.value >= Minimun_amount, "You do meet minimum amount");
+        addfundersHere[msg.sender] = addfundersHere[msg.sender] + msg.value;
+
+        //Push this information into the array
+        funders.push(msg.sender);
+    }
+
+   
+    function getVersion() public view returns (uint256){
+        // ETH/USD price feed address of Sepolia Network.
+        AggregatorV3Interface priceFeed = AggregatorV3Interface(0x694AA1769357215DE4FAC081bf1f309aDC325306);
+        return priceFeed.version();
+    }
+    //The next process is to withdraw our funds to our web address.
+    function withdraw() public {
+        //We will traverse throught the entire array and initialize thier balances to 0, will also do same for the address strore in thearray.
+       
+        for (uint256 funderIndex=0; funderIndex < funders.length; funderIndex++){
+            address funderss =  funders[funderIndex];
+            addfundersHere[funderss] = 0;
+        }
+    //Ttransfer the balance in this address into the account of the owner
+    (bool callSuccess,) = payable(msg.sender).call{value:address(this).balance}("");
+    require(callSuccess, "transaction falied");
+
+    }
+
+    //Now, let us add a modifier to our contract
+    modifier onlyowner {
+        //Only the owner can perform these operations.
+        require(msg.sender == i_owner, "Not Authorized");
+        if(msg.sender == i_owner) revert NotOwner();
+        _;
+    }
+}
